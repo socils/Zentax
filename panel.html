@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZENTAX — Panel de Control</title>
+  <title>ZENTAX — Panel Principal</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -286,64 +286,60 @@
   </div>
 
   <script type="module">
-    import { detectarSesion, cerrarSesion, obtenerUsuario } from "./firebase.js";
+    import { 
+      verificarSesion, 
+      obtenerSesion,
+      cerrarSesion, 
+      obtenerDatosUsuario,
+      formatearFecha,
+      calcularDiasActivo 
+    } from "./utils.js";
+    
+    // Verificar sesión
+    const sesion = verificarSesion();
+    if (!sesion) {
+      window.location.href = "index.html";
+    }
     
     const loadingBox = document.getElementById("loadingBox");
     const profileBox = document.getElementById("profileBox");
     const logoutBtn = document.getElementById("logoutBtn");
     
-    let currentUid = null;
-    
-    // Detectar sesión
-    detectarSesion((uid, perfil) => {
-      if (!uid) {
-        window.location.href = "index.html";
-        return;
-      }
-      
-      currentUid = uid;
-      cargarPerfil(uid);
-    });
-    
-    async function cargarPerfil(uid) {
+    // Cargar datos del usuario
+    function cargarPerfil() {
       try {
-        const perfil = await obtenerUsuario(uid);
+        const sesion = obtenerSesion();
+        const datos = obtenerDatosUsuario(sesion.uid);
         
-        if (!perfil) {
-          loadingBox.textContent = "Error al cargar perfil";
+        if (!datos) {
+          loadingBox.textContent = "Error: No se pudieron cargar los datos";
           return;
         }
         
-        // Llenar datos
-        document.getElementById("username").textContent = perfil.username;
-        document.getElementById("email").textContent = perfil.email;
-        document.getElementById("avatar").textContent = perfil.username.charAt(0).toUpperCase();
-        document.getElementById("reputation").textContent = perfil.reputation || 0;
-        document.getElementById("tradesCount").textContent = perfil.tradesCount || 0;
+        // Mostrar información
+        document.getElementById("username").textContent = sesion.username;
+        document.getElementById("email").textContent = sesion.email;
+        document.getElementById("avatar").textContent = sesion.username.charAt(0).toUpperCase();
+        document.getElementById("reputation").textContent = datos.reputation || 0;
+        
+        const tradesCompletados = datos.trades?.filter(t => t.status === "completed").length || 0;
+        document.getElementById("tradesCount").textContent = tradesCompletados;
         
         // Insignias
-        const badgeCount = perfil.badges ? perfil.badges.length : 0;
+        const badgeCount = datos.badges ? datos.badges.length : 0;
         document.getElementById("badgeCount").textContent = badgeCount;
         
         const badgesBox = document.getElementById("badgesBox");
-        if (perfil.badges && perfil.badges.length > 0) {
-          badgesBox.innerHTML = perfil.badges.map(badge => `<div class="badge">${badge}</div>`).join("");
+        if (datos.badges && datos.badges.length > 0) {
+          badgesBox.innerHTML = datos.badges.map(b => `<div class="badge">${b}</div>`).join("");
         } else {
           badgesBox.innerHTML = '<div class="badge" style="opacity: 0.5;">Sin insignias aún</div>';
         }
         
         // Fecha de creación
-        if (perfil.createdAt) {
-          let fecha;
-          if (perfil.createdAt.seconds) {
-            fecha = new Date(perfil.createdAt.seconds * 1000).toLocaleDateString("es-ES");
-          } else {
-            fecha = new Date(perfil.createdAt).toLocaleDateString("es-ES");
-          }
-          document.getElementById("createdAt").textContent = `Miembro desde ${fecha}`;
-        }
+        document.getElementById("createdAt").textContent = `Miembro desde ${formatearFecha(sesion.loginTime)}`;
         
-        // Mostrar perfil
+        // Mostrar panel
         loadingBox.style.display = "none";
         profileBox.style.display = "block";
       } catch (error) {
@@ -352,14 +348,16 @@
       }
     }
     
-    logoutBtn.addEventListener("click", async () => {
-      try {
-        await cerrarSesion();
-        window.location.href = "index.html";
-      } catch (error) {
-        alert("Error al cerrar sesión: " + error.message);
-      }
+    // Logout
+    logoutBtn.addEventListener("click", () => {
+      cerrarSesion();
+      window.location.href = "index.html";
     });
+    
+    // Inicializar
+    cargarPerfil();
   </script>
 </body>
 </html>
+
+
