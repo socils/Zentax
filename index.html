@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ZENTAX — DNI Digital de Trades</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -25,22 +29,24 @@
     
     .logo {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 40px;
     }
     
     .logo h1 {
-      font-size: 32px;
-      font-weight: 700;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      background-clip: text;
+      font-size: 36px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 5px;
+      background-clip: text;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
     }
     
     .logo p {
       color: #94a3b8;
       font-size: 14px;
+      font-weight: 500;
     }
     
     .card {
@@ -50,24 +56,26 @@
       border-radius: 16px;
       padding: 40px;
       margin-bottom: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
     
     .card h2 {
-      font-size: 20px;
-      margin-bottom: 25px;
+      font-size: 22px;
+      margin-bottom: 28px;
       text-align: center;
+      font-weight: 600;
     }
     
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
     
     label {
       display: block;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
       margin-bottom: 8px;
       color: #cbd5e1;
     }
@@ -81,6 +89,7 @@
       color: #f1f5f9;
       font-size: 14px;
       transition: all 0.3s ease;
+      font-family: inherit;
     }
     
     input:focus {
@@ -97,7 +106,7 @@
     .btn {
       width: 100%;
       padding: 12px;
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       border: none;
       border-radius: 8px;
       color: white;
@@ -110,18 +119,23 @@
       margin-top: 10px;
     }
     
-    .btn:hover {
+    .btn:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
     }
     
-    .btn:active {
+    .btn:active:not(:disabled) {
       transform: translateY(0);
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     
     .toggle {
       text-align: center;
-      margin-top: 20px;
+      margin-top: 24px;
     }
     
     .toggle p {
@@ -139,6 +153,7 @@
       font-size: 13px;
       padding: 0;
       margin-left: 5px;
+      transition: color 0.3s ease;
     }
     
     .toggle button:hover {
@@ -146,11 +161,23 @@
     }
     
     .message {
-      padding: 12px 14px;
+      padding: 14px 14px;
       border-radius: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       font-size: 13px;
       display: none;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
     .message.error {
@@ -167,9 +194,8 @@
       display: block;
     }
     
-    .loading {
-      opacity: 0.6;
-      pointer-events: none;
+    .form-group.hidden {
+      display: none;
     }
   </style>
 </head>
@@ -177,7 +203,7 @@
   <div class="container">
     <div class="logo">
       <h1>ZENTAX</h1>
-      <p>DNI Digital para Trades</p>
+      <p>DNI Digital para Traders</p>
     </div>
     
     <div class="card">
@@ -185,8 +211,8 @@
       
       <h2 id="formTitle">Iniciar Sesión</h2>
       
-      <form id="authForm">
-        <div class="form-group" id="usernameGroup" style="display: none;">
+      <form id="authForm" novalidate>
+        <div class="form-group hidden" id="usernameGroup">
           <label for="username">Nombre de Usuario</label>
           <input type="text" id="username" placeholder="Ej: TuUsuario123">
         </div>
@@ -211,16 +237,13 @@
   </div>
 
   <script type="module">
-    import { iniciarSesion, registrar, detectarSesion } from "./firebase.js";
+    import { 
+      registrarUsuario, 
+      iniciarSesion, 
+      obtenerSesion
+    } from "./utils.js";
     
     let isRegistering = false;
-    
-    // Detectar si ya hay sesión activa
-    detectarSesion((uid, perfil) => {
-      if (uid) {
-        window.location.href = "panel.html";
-      }
-    });
     
     const form = document.getElementById("authForm");
     const emailInput = document.getElementById("email");
@@ -232,81 +255,84 @@
     const toggleBtn = document.getElementById("toggleBtn");
     const messageBox = document.getElementById("messageBox");
     
-    toggleBtn.addEventListener("click", () => {
+    // Verificar si ya hay sesión
+    const sesion = obtenerSesion();
+    if (sesion) {
+      window.location.href = "panel.html";
+    }
+    
+    // Toggle entre login y registro
+    toggleBtn.addEventListener("click", (e) => {
+      e.preventDefault();
       isRegistering = !isRegistering;
       
       if (isRegistering) {
         formTitle.textContent = "Crear Cuenta";
         submitBtn.textContent = "Registrarse";
         toggleBtn.textContent = "Volver al login";
-        usernameGroup.style.display = "block";
+        usernameGroup.classList.remove("hidden");
         usernameInput.required = true;
       } else {
         formTitle.textContent = "Iniciar Sesión";
         submitBtn.textContent = "Entrar";
         toggleBtn.textContent = "Crear una nueva";
-        usernameGroup.style.display = "none";
+        usernameGroup.classList.add("hidden");
         usernameInput.required = false;
       }
       
       messageBox.textContent = "";
       messageBox.className = "message";
+      form.reset();
     });
     
+    // Enviar formulario
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      submitBtn.classList.add("loading");
+      submitBtn.disabled = true;
       messageBox.textContent = "";
       messageBox.className = "message";
       
       try {
         if (isRegistering) {
-          // Validar username
-          if (!usernameInput.value.trim()) {
-            throw new Error("El nombre de usuario es requerido");
-          }
+          // Registrar
+          await registrarUsuario(
+            emailInput.value.trim(),
+            passwordInput.value,
+            usernameInput.value.trim()
+          );
           
-          if (usernameInput.value.trim().length < 3) {
-            throw new Error("El username debe tener al menos 3 caracteres");
-          }
+          // Iniciar sesión automáticamente
+          await iniciarSesion(emailInput.value.trim(), passwordInput.value);
           
-          await registrar(emailInput.value, passwordInput.value, usernameInput.value.trim());
-          
-          messageBox.textContent = "✓ Cuenta creada exitosamente. Redirigiendo...";
-          messageBox.className = "message success";
+          mostrarMensaje("✓ Cuenta creada. Redirigiendo...", "success");
           
           setTimeout(() => {
             window.location.href = "panel.html";
-          }, 1500);
+          }, 1200);
         } else {
-          await iniciarSesion(emailInput.value, passwordInput.value);
+          // Login
+          await iniciarSesion(
+            emailInput.value.trim(),
+            passwordInput.value
+          );
           
-          messageBox.textContent = "✓ Sesión iniciada. Redirigiendo...";
-          messageBox.className = "message success";
+          mostrarMensaje("✓ Sesión iniciada. Redirigiendo...", "success");
           
           setTimeout(() => {
             window.location.href = "panel.html";
-          }, 1500);
+          }, 1200);
         }
       } catch (error) {
-        let mensajeError = error.message;
-        
-        if (error.message.includes("already")) {
-          mensajeError = "Este correo ya está registrado";
-        } else if (error.message.includes("not found")) {
-          mensajeError = "Correo o contraseña incorrectos";
-        } else if (error.message.includes("wrong")) {
-          mensajeError = "Correo o contraseña incorrectos";
-        } else if (error.message.includes("weak")) {
-          mensajeError = "La contraseña debe tener al menos 6 caracteres";
-        }
-        
-        messageBox.textContent = "✗ " + mensajeError;
-        messageBox.className = "message error";
+        mostrarMensaje("✗ " + error.message, "error");
+      } finally {
+        submitBtn.disabled = false;
       }
-      
-      submitBtn.classList.remove("loading");
     });
+    
+    function mostrarMensaje(texto, tipo) {
+      messageBox.textContent = texto;
+      messageBox.className = "message " + tipo;
+    }
   </script>
 </body>
 </html>
