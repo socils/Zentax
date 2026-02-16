@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zentax — Buscar Usuario</title>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:40px;
+}
+
+.card{
+background:#111827;
+padding:25px;
+border-radius:12px;
+max-width:700px;
+margin:auto;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+border:none;
+border-radius:6px;
+background:#1f2937;
+color:white;
+}
+
+button{
+margin-top:15px;
+padding:12px;
+border:none;
+background:#2563eb;
+color:white;
+border-radius:8px;
+cursor:pointer;
+}
+
+.result{
+background:#1f2937;
+padding:15px;
+margin-top:20px;
+border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>🔎 Buscar Usuario Zentax</h2>
+
+<input id="searchID" placeholder="Ingresa ID Zentax">
+<button onclick="buscar()">Buscar</button>
+
+<div id="resultado"></div>
+</div>
+
+<script>
+    let session = JSON.parse(localStorage.getItem("zentax_session"));
+if(!session) location.href="index.html";
+
+let allData = JSON.parse(localStorage.getItem("zentax_data")) || {};
+
+if(!allData[session.user]){
+  allData[session.user] = {
+    trades:[],
+    reports:[],
+    links:[]
+  };
+}
+
+function saveData(){
+  localStorage.setItem("zentax_data", JSON.stringify(allData));
+}
+
+let userData = allData[session.user];
+
+
+function calcularInsignias(trades, reports){
+let badges = [];
+
+if(trades >= 1) badges.push("🥉 Primer Trade");
+if(trades >= 5) badges.push("🥈 Trader Activo");
+if(trades >= 20) badges.push("🥇 Trader Experto");
+
+if(reports === 0) badges.push("🛡️ Cuenta Limpia");
+if(reports >= 3) badges.push("⚠️ Bajo Observación");
+
+let score = trades - (reports * 2);
+if(score >= 10) badges.push("👑 Usuario Confiable");
+
+return badges;
+}
+
+function buscar(){
+
+let idBuscado = document.getElementById("searchID").value;
+
+let profile = JSON.parse(localStorage.getItem("zentax_profile"));
+let trades = JSON.parse(localStorage.getItem("zentax_trades")) || [];
+let reports = JSON.parse(localStorage.getItem("zentax_reports")) || [];
+
+let box = document.getElementById("resultado");
+
+if(!profile || profile.id !== idBuscado){
+box.innerHTML = "<p>❌ Usuario no encontrado</p>";
+return;
+}
+
+let tradeCount = trades.length;
+let reportCount = reports.length;
+
+let score = tradeCount - (reportCount * 2);
+
+let status = "PELIGRO";
+if(score >= 10) status = "CONFIABLE";
+else if(score >= 5) status = "BUENO";
+else if(score >= 0) status = "RIESGO";
+
+let badges = calcularInsignias(tradeCount, reportCount);
+
+box.innerHTML = `
+<div class="result">
+<h3>${profile.user}</h3>
+<b>ID:</b> ${profile.id}<br>
+<b>Trades:</b> ${tradeCount}<br>
+<b>Reportes:</b> ${reportCount}<br>
+<b>Estado:</b> ${status}<br><br>
+<b>Insignias:</b><br>
+${badges.join("<br>")}
+</div>
+`;
+}
+
+</script>
+
+</body>
+</html>

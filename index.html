@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zentax — Login</title>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:40px;
+text-align:center;
+}
+
+.card{
+background:#111827;
+padding:30px;
+border-radius:14px;
+max-width:400px;
+margin:auto;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+border:none;
+border-radius:6px;
+background:#1f2937;
+color:white;
+}
+
+button{
+width:100%;
+padding:14px;
+margin-top:12px;
+border:none;
+border-radius:10px;
+background:#2563eb;
+color:white;
+font-size:16px;
+cursor:pointer;
+}
+
+.link{
+margin-top:15px;
+cursor:pointer;
+color:#60a5fa;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2 id="title">🔐 Iniciar Sesión</h2>
+
+<input id="user" placeholder="Usuario">
+<input id="pass" type="password" placeholder="Contraseña">
+
+<button onclick="handleAction()">Entrar</button>
+
+<div class="link" onclick="toggleMode()">Crear cuenta</div>
+
+</div>
+
+<script>
+
+// 🔹 Modo actual
+let registerMode = false;
+
+// 🔹 Cambiar entre login / registro
+function toggleMode(){
+registerMode = !registerMode;
+
+document.getElementById("title").innerText =
+registerMode ? "🆕 Crear Cuenta" : "🔐 Iniciar Sesión";
+}
+
+// 🔹 Generar ID
+function generateID(){
+return "ZT-" + Math.floor(Math.random()*999999);
+}
+
+// 🔹 Acción principal
+function handleAction(){
+
+let user = document.getElementById("user").value.trim();
+let pass = document.getElementById("pass").value.trim();
+
+if(!user || !pass){
+alert("Completa los campos");
+return;
+}
+
+let users = JSON.parse(localStorage.getItem("zentax_users")) || [];
+
+if(registerMode){
+
+// CREAR CUENTA
+if(users.find(u => u.user === user)){
+alert("Usuario ya existe");
+return;
+}
+
+let newUser = {
+user:user,
+pass:pass,
+id:generateID()
+};
+
+users.push(newUser);
+
+localStorage.setItem("zentax_users", JSON.stringify(users));
+localStorage.setItem("zentax_session", JSON.stringify(newUser));
+
+alert("Cuenta creada ✔");
+
+window.location.href = "panel.html";
+
+}else{
+
+// LOGIN
+let found = users.find(u => u.user === user && u.pass === pass);
+
+if(!found){
+alert("Datos incorrectos");
+return;
+}
+
+localStorage.setItem("zentax_session", JSON.stringify(found));
+
+window.location.href = "panel.html";
+}
+
+}
+
+</script>
+
+</body>
+</html>

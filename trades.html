@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Registrar Trade</title>
+
+<style>
+body{font-family:Arial;background:#0f172a;color:white;padding:40px;}
+.card{background:#111827;padding:20px;border-radius:12px;max-width:600px;margin:auto;}
+input{width:100%;padding:10px;margin-top:10px;background:#1f2937;color:white;border:none;}
+button{margin-top:15px;padding:12px;background:#2563eb;color:white;border:none;border-radius:8px;}
+.trade{background:#1f2937;padding:10px;margin-top:10px;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>📦 Registrar Trade</h2>
+
+<input id="with" placeholder="Con quién intercambiaste">
+<input id="item" placeholder="Qué intercambiaste">
+
+<button onclick="addTrade()">Guardar</button>
+
+<h3>Historial</h3>
+<div id="list"></div>
+</div>
+
+<script>
+
+let session = JSON.parse(localStorage.getItem("zentax_session"));
+let allData = JSON.parse(localStorage.getItem("zentax_data")) || {};
+
+if(!allData[session.user]){
+allData[session.user] = { trades:[], reports:[], links:[] };
+}
+
+let data = allData[session.user];
+
+function save(){
+localStorage.setItem("zentax_data", JSON.stringify(allData));
+}
+
+function addTrade(){
+
+let withUser = document.getElementById("with").value;
+let item = document.getElementById("item").value;
+
+if(!withUser || !item) return alert("Completa");
+
+data.trades.push({
+with:withUser,
+item:item,
+date:new Date().toLocaleDateString()
+});
+
+save();
+render();
+}
+
+function render(){
+let box = document.getElementById("list");
+box.innerHTML="";
+
+data.trades.forEach(t=>{
+box.innerHTML += `
+<div class="trade">
+Con: ${t.with}<br>
+Item: ${t.item}<br>
+Fecha: ${t.date}
+</div>
+`;
+});
+}
+
+render();
+
+</script>
+
+</body>
+</html>
+        

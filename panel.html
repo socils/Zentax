@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Zentax Panel</title>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:40px;
+text-align:center;
+}
+
+.card{
+background:#111827;
+padding:30px;
+border-radius:14px;
+max-width:700px;
+margin:auto;
+}
+
+button{
+width:100%;
+padding:14px;
+margin-top:12px;
+border:none;
+border-radius:10px;
+background:#2563eb;
+color:white;
+font-size:16px;
+cursor:pointer;
+}
+
+button:hover{
+background:#1d4ed8;
+}
+
+.logout{
+background:#ef4444;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2 id="welcome"></h2>
+<p id="id"></p>
+
+<button onclick="go('perfil.html')">🪪 Perfil</button>
+<button onclick="go('trades.html')">📦 Trades</button>
+<button onclick="go('reportes.html')">🚨 Reportes</button>
+<button onclick="go('reputacion.html')">🏆 Reputación</button>
+<button onclick="go('insignias.html')">🏅 Insignias</button>
+<button onclick="go('vincular.html')">🔗 Vincular</button>
+<button onclick="go('buscar.html')">🔎 Buscar</button>
+
+<button class="logout" onclick="logout()">Cerrar sesión</button>
+
+</div>
+
+<script>
+
+// 🔴 PASO 1: leer sesión correctamente
+let sessionText = localStorage.getItem("zentax_session");
+
+// 🔴 PASO 2: verificar si existe
+if(!sessionText){
+alert("Debes iniciar sesión");
+location.href="index.html";
+}
+
+// 🔴 PASO 3: convertir a objeto
+let session = JSON.parse(sessionText);
+
+// 🔴 PASO 4: mostrar datos
+document.getElementById("welcome").innerText =
+"Bienvenido " + session.user;
+
+document.getElementById("id").innerText =
+"ID Zentax: " + session.id;
+
+
+// navegación
+function go(p){
+location.href=p;
+}
+
+// cerrar sesión
+function logout(){
+localStorage.removeItem("zentax_session");
+location.href="index.html";
+}
+
+</script>
+
+</body>
+</html>
