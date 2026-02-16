@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZENTAX — Panel de Control</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .navbar {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .navbar h1 {
+      font-size: 24px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .navbar-menu {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    .nav-btn {
+      padding: 8px 16px;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .nav-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+    
+    .nav-btn.logout {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    
+    .nav-btn.logout:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .card {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1);
+    }
+    
+    .card h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    
+    .card-value {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    
+    .card-subtitle {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .profile-section {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+    }
+    
+    .profile-info h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .profile-info p {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+    
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .badge {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .btn {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn.secondary {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn.secondary:hover {
+      background: rgba(59, 130, 246, 0.3);
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>ZENTAX</h1>
+    <div class="navbar-menu">
+      <a href="buscar.html" class="nav-btn">🔍 Buscar</a>
+      <a href="trades.html" class="nav-btn">💱 Trades</a>
+      <a href="reportes.html" class="nav-btn">⚠️ Reportes</a>
+      <a href="vincular.html" class="nav-btn">🔗 Vincular</a>
+      <button class="nav-btn logout" id="logoutBtn">🚪 Salir</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div id="loadingBox" class="loading">Cargando perfil...</div>
+    
+    <div id="profileBox" style="display: none;">
+      <div class="profile-section">
+        <div class="profile-header">
+          <div class="profile-avatar" id="avatar">Z</div>
+          <div class="profile-info">
+            <h2 id="username">Cargando...</h2>
+            <p id="email">-</p>
+            <p id="createdAt">-</p>
+            <div class="badges" id="badgesBox"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid">
+        <div class="card">
+          <h3>Reputación</h3>
+          <div class="card-value" id="reputation">0</div>
+          <div class="card-subtitle">Basada en trades completados</div>
+        </div>
+        
+        <div class="card">
+          <h3>Trades Completados</h3>
+          <div class="card-value" id="tradesCount">0</div>
+          <div class="card-subtitle">Intercambios exitosos</div>
+        </div>
+        
+        <div class="card">
+          <h3>Insignias Ganadas</h3>
+          <div class="card-value" id="badgeCount">0</div>
+          <div class="card-subtitle">Logros desbloqueados</div>
+        </div>
+      </div>
+      
+      <div class="actions">
+        <a href="perfil.html" class="btn secondary">👤 Ver Mi Perfil</a>
+        <a href="trades.html" class="btn">💱 Mis Trades</a>
+        <a href="reportes.html" class="btn secondary">⚠️ Reportar Usuario</a>
+        <a href="vincular.html" class="btn secondary">🔗 Cuentas Vinculadas</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { detectarSesion, cerrarSesion, obtenerUsuario } from "./firebase.js";
+    
+    const loadingBox = document.getElementById("loadingBox");
+    const profileBox = document.getElementById("profileBox");
+    const logoutBtn = document.getElementById("logoutBtn");
+    
+    let currentUid = null;
+    
+    // Detectar sesión
+    detectarSesion((uid, perfil) => {
+      if (!uid) {
+        window.location.href = "index.html";
+        return;
+      }
+      
+      currentUid = uid;
+      cargarPerfil(uid);
+    });
+    
+    async function cargarPerfil(uid) {
+      try {
+        const perfil = await obtenerUsuario(uid);
+        
+        if (!perfil) {
+          loadingBox.textContent = "Error al cargar perfil";
+          return;
+        }
+        
+        // Llenar datos
+        document.getElementById("username").textContent = perfil.username;
+        document.getElementById("email").textContent = perfil.email;
+        document.getElementById("avatar").textContent = perfil.username.charAt(0).toUpperCase();
+        document.getElementById("reputation").textContent = perfil.reputation || 0;
+        document.getElementById("tradesCount").textContent = perfil.tradesCount || 0;
+        
+        // Insignias
+        const badgeCount = perfil.badges ? perfil.badges.length : 0;
+        document.getElementById("badgeCount").textContent = badgeCount;
+        
+        const badgesBox = document.getElementById("badgesBox");
+        if (perfil.badges && perfil.badges.length > 0) {
+          badgesBox.innerHTML = perfil.badges.map(badge => `<div class="badge">${badge}</div>`).join("");
+        } else {
+          badgesBox.innerHTML = '<div class="badge" style="opacity: 0.5;">Sin insignias aún</div>';
+        }
+        
+        // Fecha de creación
+        if (perfil.createdAt) {
+          let fecha;
+          if (perfil.createdAt.seconds) {
+            fecha = new Date(perfil.createdAt.seconds * 1000).toLocaleDateString("es-ES");
+          } else {
+            fecha = new Date(perfil.createdAt).toLocaleDateString("es-ES");
+          }
+          document.getElementById("createdAt").textContent = `Miembro desde ${fecha}`;
+        }
+        
+        // Mostrar perfil
+        loadingBox.style.display = "none";
+        profileBox.style.display = "block";
+      } catch (error) {
+        console.error("Error:", error);
+        loadingBox.textContent = "Error al cargar el perfil";
+      }
+    }
+    
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        await cerrarSesion();
+        window.location.href = "index.html";
+      } catch (error) {
+        alert("Error al cerrar sesión: " + error.message);
+      }
+    });
+  </script>
+</body>
+</html>

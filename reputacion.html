@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZENTAX — Reputación</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f1f5f9; min-height: 100vh; padding: 20px; }
+    .navbar { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px 24px; margin-bottom: 30px; display: flex; justify-content: space-between; }
+    .navbar h1 { font-size: 24px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-btn { padding: 8px 16px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-block; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; text-align: center; }
+    .reputation-score { font-size: 48px; font-weight: 700; margin: 20px 0; }
+    .safe { color: #22c55e; }
+    .good { color: #3b82f6; }
+    .risk { color: #facc15; }
+    .danger { color: #ef4444; }
+    .stats { margin-top: 30px; text-align: left; background: rgba(30, 41, 59, 0.5); padding: 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .stat-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    .stat-item:last-child { border-bottom: none; }
+    .stat-label { color: #94a3b8; }
+    .stat-value { font-weight: 600; color: #60a5fa; }
+    .loading { text-align: center; color: #94a3b8; padding: 40px; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>ZENTAX</h1>
+    <a href="panel.html" class="nav-btn">← Volver</a>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2>🏆 Mi Reputación</h2>
+      
+      <div id="loadingBox" class="loading">Cargando...</div>
+      
+      <div id="reputationBox" style="display: none;">
+        <div class="reputation-score" id="scoreStatus">0</div>
+        
+        <div class="stats">
+          <div class="stat-item">
+            <span class="stat-label">📦 Trades Completados</span>
+            <span class="stat-value" id="tradesCount">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">🚨 Reportes Recibidos</span>
+            <span class="stat-value" id="reportsCount">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">⭐ Puntuación de Reputación</span>
+            <span class="stat-value" id="reputation">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { detectarSesion, obtenerUsuario, obtenerTodosTrades, obtenerReportes } from "./firebase.js";
+    
+    let currentUid = null;
+    
+    detectarSesion((uid, perfil) => {
+      if (!uid) window.location.href = "index.html";
+      currentUid = uid;
+      cargarReputacion();
+    });
+    
+    async function cargarReputacion() {
+      try {
+        const usuario = await obtenerUsuario(currentUid);
+        const trades = await obtenerTodosTrades(currentUid);
+        const reportes = await obtenerReportes();
+        
+        const tradesCompletados = trades.filter(t => t.status === 'completed').length;
+        const reportesRecibidos = reportes.filter(r => r.reportedUid === currentUid).length;
+        const reputacion = usuario.reputation || 0;
+        
+        // Determinar estado
+        let status = "";
+        let className = "";
+        
+        if (reputacion >= 500) {
+          status = "🌟 EXCELENTE";
+          className = "safe";
+        } else if (reputacion >= 100) {
+          status = "⭐⭐⭐⭐ CONFIABLE";
+          className = "safe";
+        } else if (reputacion >= 50) {
+          status = "⭐⭐⭐ BUENO";
+          className = "good";
+        } else if (reputacion >= 0) {
+          status = "⭐⭐ REGULAR";
+          className = "risk";
+        } else {
+          status = "⭐ BAJO";
+          className = "danger";
+        }
+        
+        document.getElementById("scoreStatus").textContent = status;
+        document.getElementById("scoreStatus").className = "reputation-score " + className;
+        document.getElementById("tradesCount").textContent = tradesCompletados;
+        document.getElementById("reportsCount").textContent = reportesRecibidos;
+        document.getElementById("reputation").textContent = reputacion;
+        
+        document.getElementById("loadingBox").style.display = "none";
+        document.getElementById("reputationBox").style.display = "block";
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("loadingBox").textContent = "Error al cargar la reputación";
+      }
+    }
+  </script>
+</body>
+</html>

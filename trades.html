@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZENTAX — Mis Trades</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f1f5f9; min-height: 100vh; padding: 20px; }
+    .navbar { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px 24px; margin-bottom: 30px; display: flex; justify-content: space-between; }
+    .navbar h1 { font-size: 24px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-btn { padding: 8px 16px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; text-decoration: none; display: inline-block; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; color: #cbd5e1; }
+    input, textarea { width: 100%; padding: 12px 14px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f1f5f9; font-size: 14px; font-family: inherit; }
+    input:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+    textarea { min-height: 100px; resize: vertical; }
+    .btn { padding: 12px 16px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn.secondary { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .trade-item { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .trade-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .trade-title { font-weight: 600; }
+    .trade-status { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .status-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .status-completed { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+    .trade-info { font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
+    .trade-actions { display: flex; gap: 8px; }
+    .confirm-btn { padding: 6px 12px; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+    .confirm-btn:hover { background: rgba(34, 197, 94, 0.3); }
+    .empty { text-align: center; color: #94a3b8; padding: 40px; }
+    .loading { color: #94a3b8; text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>ZENTAX</h1>
+    <a href="panel.html" class="nav-btn">← Volver</a>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2>💱 Nuevo Trade</h2>
+      
+      <form id="tradeForm">
+        <div class="form-group">
+          <label>Descripción del Intercambio</label>
+          <textarea id="description" placeholder="Ej: Intercambié 100 Robux por 50K en otro juego" required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Evidencia (opcional)</label>
+          <textarea id="evidence" placeholder="Descripción de pruebas/capturas"></textarea>
+        </div>
+        
+        <button type="submit" class="btn">Crear Trade</button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h2>📋 Mis Trades</h2>
+      
+      <div id="tradesBox" class="loading">Cargando trades...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { detectarSesion, crearTrade, obtenerTodosTrades, confirmarTrade } from "./firebase.js";
+    
+    let currentUid = null;
+    
+    detectarSesion((uid, perfil) => {
+      if (!uid) window.location.href = "index.html";
+      currentUid = uid;
+      cargarTrades();
+    });
+    
+    const form = document.getElementById("tradeForm");
+    
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      try {
+        const description = document.getElementById("description").value.trim();
+        const evidence = document.getElementById("evidence").value.trim();
+        
+        if (!description) {
+          alert("Describe el intercambio");
+          return;
+        }
+        
+        form.style.opacity = "0.5";
+        form.style.pointerEvents = "none";
+        
+        // Por ahora solo guardamos como iniciado por este usuario
+        // En un verdadero escenario, necesitaríamos seleccionar al otro usuario
+        await crearTrade(currentUid, "pendiente", description, evidence);
+        
+        document.getElementById("description").value = "";
+        document.getElementById("evidence").value = "";
+        
+        form.style.opacity = "1";
+        form.style.pointerEvents = "auto";
+        
+        alert("Trade creado exitosamente");
+        cargarTrades();
+      } catch (error) {
+        alert("Error: " + error.message);
+        form.style.opacity = "1";
+        form.style.pointerEvents = "auto";
+      }
+    });
+    
+    async function cargarTrades() {
+      try {
+        const trades = await obtenerTodosTrades(currentUid);
+        const tradesBox = document.getElementById("tradesBox");
+        
+        if (trades.length === 0) {
+          tradesBox.innerHTML = '<div class="empty">No tienes trades aún</div>';
+          return;
+        }
+        
+        tradesBox.innerHTML = trades.map(trade => {
+          let fecha = '';
+          if (trade.createdAt) {
+            if (trade.createdAt.seconds) {
+              fecha = new Date(trade.createdAt.seconds * 1000).toLocaleDateString("es-ES");
+            } else {
+              fecha = new Date(trade.createdAt).toLocaleDateString("es-ES");
+            }
+          }
+          
+          const confirmado = (currentUid === trade.user1 && trade.user1Confirmed) || 
+                           (currentUid === trade.user2 && trade.user2Confirmed);
+          
+          return `
+          <div class="trade-item">
+            <div class="trade-header">
+              <span class="trade-title">${trade.items}</span>
+              <span class="trade-status ${trade.status === 'completed' ? 'status-completed' : 'status-pending'}">
+                ${trade.status === 'completed' ? '✓ Completado' : confirmado ? '✓ Confirmado' : '⏳ Pendiente'}
+              </span>
+            </div>
+            <div class="trade-info">
+              📅 ${fecha}
+            </div>
+            ${trade.evidencia ? `<div class="trade-info">📸 ${trade.evidencia}</div>` : ''}
+            <div class="trade-actions">
+              ${trade.status !== 'completed' && !confirmado ? `<button class="confirm-btn" data-trade-id="${trade.id}">Confirmar Completado</button>` : '<span style="color: #86efac; font-size: 12px;">' + (confirmado ? 'Confirmado por ti' : 'Completado') + '</span>'}
+            </div>
+          </div>
+        `;
+        }).join("");
+        
+        // Agregar event listeners a los botones de confirmación
+        document.querySelectorAll('[data-trade-id]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const tradeId = btn.dataset.tradeId;
+            try {
+              await confirmarTrade(tradeId, currentUid);
+              alert("Trade confirmado");
+              cargarTrades();
+            } catch (error) {
+              alert("Error: " + error.message);
+            }
+          });
+        });
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("tradesBox").innerHTML = '<div class="empty">Error al cargar trades</div>';
+      }
+    }
+    
+    window.confirmarTrade = async (tradeId) => {
+      try {
+        await confirmarTrade(tradeId, currentUid);
+        alert("Trade confirmado");
+        cargarTrades();
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+    };
