@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZENTAX — Insignias</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f1f5f9; min-height: 100vh; padding: 20px; }
+    .navbar { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px 24px; margin-bottom: 30px; display: flex; justify-content: space-between; }
+    .navbar h1 { font-size: 24px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-btn { padding: 8px 16px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; text-decoration: none; display: inline-block; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; margin-top: 20px; }
+    .badge-item { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 16px; text-align: center; }
+    .badge-emoji { font-size: 40px; margin-bottom: 12px; }
+    .badge-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .badge-desc { font-size: 11px; color: #94a3b8; }
+    .badge-item.locked { opacity: 0.4; }
+    .empty { text-align: center; color: #94a3b8; padding: 40px; }
+    .loading { color: #94a3b8; text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>ZENTAX</h1>
+    <a href="panel.html" class="nav-btn">← Volver</a>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2>🏅 Insignias Desbloqueadas</h2>
+      <div id="badgesBox" class="loading">Cargando insignias...</div>
+    </div>
+    
+    <div class="card">
+      <h2>🎯 Insignias por Desbloquear</h2>
+      <div id="lockedBadgesBox" class="loading">Cargando...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { detectarSesion, obtenerUsuario, obtenerTodosTrades, obtenerReportes } from "./firebase.js";
+    
+    let currentUid = null;
+    
+    detectarSesion((uid, perfil) => {
+      if (!uid) window.location.href = "index.html";
+      currentUid = uid;
+      cargarInsignias();
+    });
+    
+    const allBadges = {
+      "🎯 Primer Trade": { desc: "Completar el primer trade", requirement: (trades) => trades.length >= 1 },
+      "⭐ 10 Trades": { desc: "Completar 10 trades", requirement: (trades) => trades.length >= 10 },
+      "💎 50 Trades": { desc: "Completar 50 trades", requirement: (trades) => trades.length >= 50 },
+      "👑 100 Trades": { desc: "Completar 100 trades", requirement: (trades) => trades.length >= 100 },
+      "🔥 Trader Confiable": { desc: "Reputación de 100+", requirement: (_, rep) => rep >= 100 },
+      "🌟 Top Trader": { desc: "Reputación de 500+", requirement: (_, rep) => rep >= 500 },
+      "🛡️ Cuenta Limpia": { desc: "Sin reportes", requirement: (_, __, reports) => reports.length === 0 },
+    };
+    
+    async function cargarInsignias() {
+      try {
+        const usuario = await obtenerUsuario(currentUid);
+        const trades = await obtenerTodosTrades(currentUid);
+        const reportes = await obtenerReportes();
+        const misReportes = reportes.filter(r => r.reportedUid === currentUid).length;
+        
+        const tradesCompletados = trades.filter(t => t.status === 'completed').length;
+        const reputacion = usuario.reputation || 0;
+        
+        // Insignias desbloqueadas
+        const desbloqueadas = usuario.badges || [];
+        const badgesBox = document.getElementById("badgesBox");
+        
+        if (desbloqueadas.length === 0) {
+          badgesBox.innerHTML = '<div class="empty">Sin insignias aún</div>';
+        } else {
+          badgesBox.innerHTML = `<div class="grid">${desbloqueadas.map(badge => {
+            const info = Object.entries(allBadges).find(([name]) => name === badge) || [badge, {}];
+            return `
+              <div class="badge-item">
+                <div class="badge-emoji">${badge.split(' ')[0]}</div>
+                <div class="badge-name">${badge}</div>
+              </div>
+            `;
+          }).join('')}</div>`;
+        }
+        
+        // Insignias bloqueadas
+        const bloqueadas = [];
+        Object.entries(allBadges).forEach(([name, info]) => {
+          if (!desbloqueadas.includes(name)) {
+            const desbloqueada = info.requirement(tradesCompletados, reputacion, misReportes);
+            if (!desbloqueada) {
+              bloqueadas.push({ name, info });
+            }
+          }
+        });
+        
+        const lockedBox = document.getElementById("lockedBadgesBox");
+        if (bloqueadas.length === 0) {
+          lockedBox.innerHTML = '<div class="empty">¡Has desbloqueado todas las insignias!</div>';
+        } else {
+          lockedBox.innerHTML = `<div class="grid">${bloqueadas.map(({name, info}) => `
+            <div class="badge-item locked">
+              <div class="badge-emoji">${name.split(' ')[0]}</div>
+              <div class="badge-name">${name}</div>
+              <div class="badge-desc">${info.desc}</div>
+            </div>
+          `).join('')}</div>`;
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("badgesBox").innerHTML = '<div class="empty">Error al cargar insignias</div>';
+      }
+    }
+  </script>
+</body>
+</html>

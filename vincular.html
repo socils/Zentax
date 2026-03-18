@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZENTAX — Vincular Cuentas</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f1f5f9; min-height: 100vh; padding: 20px; }
+    .navbar { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px 24px; margin-bottom: 30px; display: flex; justify-content: space-between; }
+    .navbar h1 { font-size: 24px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-btn { padding: 8px 16px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; text-decoration: none; display: inline-block; }
+    .container { max-width: 700px; margin: 0 auto; }
+    .card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; color: #cbd5e1; }
+    input, select { width: 100%; padding: 12px 14px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f1f5f9; font-size: 14px; }
+    input:focus, select:focus { outline: none; border-color: #3b82f6; }
+    .btn { padding: 12px 16px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; width: 100%; }
+    .btn:hover { transform: translateY(-2px); }
+    .link-item { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .link-info { flex: 1; }
+    .link-platform { font-weight: 600; margin-bottom: 4px; }
+    .link-username { font-size: 13px; color: #94a3b8; }
+    .unlink-btn { padding: 6px 12px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+    .unlink-btn:hover { background: rgba(239, 68, 68, 0.3); }
+    .empty { text-align: center; color: #94a3b8; padding: 40px; }
+    .loading { color: #94a3b8; text-align: center; padding: 20px; }
+    .message { padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: none; }
+    .message.success { background: rgba(34, 197, 94, 0.1); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); display: block; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>ZENTAX</h1>
+    <a href="panel.html" class="nav-btn">← Volver</a>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2>🔗 Vincular Cuentas Externas</h2>
+      
+      <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Vincula tus cuentas de otras plataformas para verificar tu identidad</p>
+      
+      <div class="message" id="messageBox"></div>
+      
+      <form id="linkForm">
+        <div class="form-group">
+          <label for="platform">Plataforma</label>
+          <select id="platform" required>
+            <option value="">Selecciona una plataforma</option>
+            <option value="Roblox">🎮 Roblox</option>
+            <option value="Discord">💬 Discord</option>
+            <option value="Minecraft">⛏️ Minecraft</option>
+            <option value="YouTube">📺 YouTube</option>
+            <option value="Twitch">📡 Twitch</option>
+            <option value="Twitter">𝕏 Twitter</option>
+            <option value="Otra">Otra Plataforma</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="username">Nombre de Usuario</label>
+          <input type="text" id="username" placeholder="Tu usuario en esa plataforma" required>
+        </div>
+        
+        <button type="submit" class="btn">Vincular Cuenta</button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h2>📌 Cuentas Vinculadas</h2>
+      
+      <div id="linkedBox" class="loading">Cargando...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { detectarSesion, obtenerUsuario, vincularCuenta, desvincularCuenta, actualizarUsuario } from "./firebase.js";
+    
+    let currentUid = null;
+    
+    detectarSesion((uid, perfil) => {
+      if (!uid) window.location.href = "index.html";
+      currentUid = uid;
+      cargarCuentas();
+    });
+    
+    const form = document.getElementById("linkForm");
+    const messageBox = document.getElementById("messageBox");
+    
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      try {
+        const platform = document.getElementById("platform").value;
+        const username = document.getElementById("username").value.trim();
+        
+        if (!username) {
+          throw new Error("Ingresa un nombre de usuario");
+        }
+        
+        form.style.opacity = "0.5";
+        form.style.pointerEvents = "none";
+        
+        await vincularCuenta(currentUid, platform, username);
+        
+        messageBox.textContent = `✓ Cuenta de ${platform} vinculada exitosamente`;
+        messageBox.className = "message success";
+        
+        form.reset();
+        setTimeout(() => {
+          messageBox.className = "message";
+        }, 3000);
+        
+        form.style.opacity = "1";
+        form.style.pointerEvents = "auto";
+        
+        cargarCuentas();
+      } catch (error) {
+        alert("Error: " + error.message);
+        form.style.opacity = "1";
+        form.style.pointerEvents = "auto";
+      }
+    });
+    
+    async function cargarCuentas() {
+      try {
+        const usuario = await obtenerUsuario(currentUid);
+        const linkedBox = document.getElementById("linkedBox");
+        
+        if (!usuario.linkedAccounts || usuario.linkedAccounts.length === 0) {
+          linkedBox.innerHTML = '<div class="empty">Sin cuentas vinculadas</div>';
+          return;
+        }
+        
+        linkedBox.innerHTML = usuario.linkedAccounts.map(account => `
+          <div class="link-item">
+            <div class="link-info">
+              <div class="link-platform">${account.platform}</div>
+              <div class="link-username">@${account.username}</div>
+            </div>
+            <button class="unlink-btn" onclick="desvincularcuenta('${account.platform}')">Desvincular</button>
+          </div>
+        `).join("");
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("linkedBox").innerHTML = '<div class="empty">Error al cargar cuentas</div>';
+      }
+    }
+    
+    window.desvincularcuenta = async (platform) => {
+      if (!confirm(`¿Desvincular ${platform}?`)) return;
+      
+      try {
+        await desvincularCuenta(currentUid, platform);
+        messageBox.textContent = `✓ ${platform} desvinculada`;
+        messageBox.className = "message success";
+        cargarCuentas();
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+    };
+  </script>
+</body>
+</html>

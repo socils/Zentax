@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZENTAX — Reportar Usuario</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f1f5f9; min-height: 100vh; padding: 20px; }
+    .navbar { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px 24px; margin-bottom: 30px; display: flex; justify-content: space-between; }
+    .navbar h1 { font-size: 24px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-btn { padding: 8px 16px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; text-decoration: none; display: inline-block; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px; color: #cbd5e1; }
+    input, select, textarea { width: 100%; padding: 12px 14px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: #f1f5f9; font-size: 14px; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; }
+    textarea { min-height: 120px; resize: vertical; }
+    .btn { padding: 12px 16px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; width: 100%; }
+    .btn:hover { transform: translateY(-2px); }
+    .report-item { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .report-title { font-weight: 600; }
+    .report-reason { font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
+    .report-date { font-size: 12px; color: #64748b; }
+    .empty { text-align: center; color: #94a3b8; padding: 40px; }
+    .loading { color: #94a3b8; text-align: center; padding: 20px; }
+    .message { padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: none; }
+    .message.success { background: rgba(34, 197, 94, 0.1); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); display: block; }
+    .message.error { background: rgba(239, 68, 68, 0.1); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); display: block; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>ZENTAX</h1>
+    <a href="panel.html" class="nav-btn">← Volver</a>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h2>⚠️ Reportar Usuario por Estafa</h2>
+      
+      <div class="message" id="messageBox"></div>
+      
+      <form id="reportForm">
+        <div class="form-group">
+          <label for="reportedUser">Usuario a Reportar</label>
+          <input type="text" id="reportedUser" placeholder="Nombre de usuario" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="reason">Razón del Reporte</label>
+          <select id="reason" required>
+            <option value="">Selecciona una razón</option>
+            <option value="estafa">Estafa / No entregó</option>
+            <option value="falsificacion">Falsificación</option>
+            <option value="conducta">Conducta inapropiada</option>
+            <option value="spam">Spam</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="evidence">Descripción y Evidencia</label>
+          <textarea id="evidence" placeholder="Describe qué sucedió, incluye capturas o detalles..." required></textarea>
+        </div>
+        
+        <button type="submit" class="btn">Enviar Reporte</button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h2>📋 Mis Reportes</h2>
+      
+      <div id="reportsBox" class="loading">Cargando reportes...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { detectarSesion, crearReporte, buscarPorUsername, obtenerReportes } from "./firebase.js";
+    
+    let currentUid = null;
+    
+    detectarSesion((uid, perfil) => {
+      if (!uid) window.location.href = "index.html";
+      currentUid = uid;
+      cargarReportes();
+    });
+    
+    const form = document.getElementById("reportForm");
+    const messageBox = document.getElementById("messageBox");
+    
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      try {
+        const reportedUser = document.getElementById("reportedUser").value.trim();
+        const reason = document.getElementById("reason").value;
+        const evidence = document.getElementById("evidence").value.trim();
+        
+        if (!reportedUser || !reason || !evidence) {
+          throw new Error("Completa todos los campos");
+        }
+        
+        // Buscar al usuario reportado
+        const usuario = await buscarPorUsername(reportedUser);
+        if (!usuario) {
+          throw new Error("Usuario no encontrado");
+        }
+        
+        form.style.opacity = "0.5";
+        form.style.pointerEvents = "none";
+        
+        await crearReporte(currentUid, usuario.uid, reason, evidence);
+        
+        messageBox.textContent = "✓ Reporte enviado exitosamente";
+        messageBox.className = "message success";
+        
+        form.reset();
+        setTimeout(() => {
+          messageBox.className = "message";
+        }, 3000);
+        
+        form.style.opacity = "1";
+        form.style.pointerEvents = "auto";
+        
+        cargarReportes();
+      } catch (error) {
+        messageBox.textContent = "✗ " + error.message;
+        messageBox.className = "message error";
+        form.style.opacity = "1";
+        form.style.pointerEvents = "auto";
+      }
+    });
+    
+    async function cargarReportes() {
+      try {
+        const reportes = await obtenerReportes();
+        const misReportes = reportes.filter(r => r.reporterUid === currentUid);
+        const reportsBox = document.getElementById("reportsBox");
+        
+        if (misReportes.length === 0) {
+          reportsBox.innerHTML = '<div class="empty">No has hecho reportes</div>';
+          return;
+        }
+        
+        reportsBox.innerHTML = misReportes.map(report => {
+          let fecha = '';
+          if (report.createdAt) {
+            if (report.createdAt.seconds) {
+              fecha = new Date(report.createdAt.seconds * 1000).toLocaleDateString("es-ES");
+            } else {
+              fecha = new Date(report.createdAt).toLocaleDateString("es-ES");
+            }
+          }
+          
+          return `
+          <div class="report-item">
+            <div class="report-header">
+              <span class="report-title">Usuario Reportado</span>
+              <span style="font-size: 13px; color: #94a3b8;">${report.reason}</span>
+            </div>
+            <div class="report-reason">📝 ${report.evidenceText}</div>
+            <div class="report-date">📅 ${fecha}</div>
+          </div>
+        `;
+        }).join("");
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById("reportsBox").innerHTML = '<div class="empty">Error al cargar reportes</div>';
+      }
+    }
+  </script>
+</body>
+</html>
